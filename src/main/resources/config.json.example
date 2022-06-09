@@ -1,0 +1,11 @@
+{
+  "client_id": "",
+  "client_secret": "",
+  "access_token": "",
+  "refresh_token": "",
+  "chat_socket_url": "",
+  "twitch_channel_name": "",
+  "twitch_mod": false,
+  "subs_only": true,
+  "twitch_message_prefix": ""
+}
