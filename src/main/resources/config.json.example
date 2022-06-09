@@ -7,5 +7,6 @@
   "twitch_channel_name": "",
   "twitch_mod": false,
   "subs_only": true,
+  "ignore_bots": true,
   "twitch_message_prefix": ""
 }
