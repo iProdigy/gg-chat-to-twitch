@@ -1,8 +1,10 @@
+@file:Suppress("SuspiciousCollectionReassignment")
+
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     id("com.github.johnrengelman.shadow") version "7.1.2"
-    kotlin("jvm") version "1.6.21"
+    kotlin("jvm") version "1.7.0"
     application
 }
 
@@ -20,7 +22,10 @@ dependencies {
 }
 
 tasks.withType<KotlinCompile>() {
-    kotlinOptions.jvmTarget = "1.8"
+    kotlinOptions {
+        freeCompilerArgs += "-Xuse-k2"
+        jvmTarget = "1.8"
+    }
 }
 
 application {
