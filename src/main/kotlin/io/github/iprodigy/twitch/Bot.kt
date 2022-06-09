@@ -11,8 +11,10 @@ import com.github.twitch4j.chat.events.channel.UserStateEvent
 import com.github.twitch4j.chat.util.TwitchChatLimitHelper
 import com.github.twitch4j.client.websocket.WebsocketConnection
 import com.github.twitch4j.common.util.ThreadUtils
+import java.nio.file.Paths
 import java.time.Duration
 import kotlin.concurrent.fixedRateTimer
+import kotlin.io.path.readText
 import kotlin.io.path.toPath
 import kotlin.io.path.writeText
 
@@ -110,11 +112,16 @@ object Bot {
         mapper.readValue(it, ConfigSettings::class.java)
     }
 
-    private fun writeConfig() = getConfigResource()?.toURI()?.toPath()?.writeText(
+    private fun writeConfig() = getConfigResource()?.writeText(
         mapper.writeValueAsString(config)
     )
 
-    private fun getConfigResource() = this::class.java.classLoader.getResource(CONFIG_FILE_NAME)
+    private fun getConfigResource() = try {
+        this::class.java.classLoader.getResource(CONFIG_FILE_NAME)?.toURI()?.toPath() ?: Paths.get(CONFIG_FILE_NAME)
+    } catch (e: Exception) {
+        e.printStackTrace()
+        null
+    }
 
     private fun checkToken() = credential != null && credential.userId.isNullOrEmpty().not()
 
