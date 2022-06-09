@@ -171,8 +171,8 @@ object Bot {
     private fun checkToken() = credential != null && credential.userId.isNullOrEmpty().not()
 
     private fun handleChatMessage(message: SocketChatMessage) {
-        if (config!!.ignoreBots && message.features?.contains("bot") == true) return
-        if (config.subsOnly && "1" != message.sub && "true" != message.sub && message.features?.contains("subscriber") != true && message.features?.contains("protected") != true) return
+        if (config!!.ignoreBots && message.isBot()) return
+        if (config.subsOnly && message.isPrivileged().not()) return
 
         val msg = "${config.twitchMessagePrefix} ${message.nick}: ${message.data}".trim().take(TWITCH_MAX_MESSAGE_LENGTH)
         if (msg.startsWith('/').not())
