@@ -9,5 +9,6 @@
   "subs_only": false,
   "ignore_bots": true,
   "include_pronouns": true,
+  "mirror_broadcasts": true,
   "twitch_message_prefix": ""
 }

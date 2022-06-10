@@ -7,8 +7,8 @@ private const val MOD_FEATURE = "moderator"
 private const val ADMIN_FEATURE = "admin"
 
 data class SocketChatMessage(
-    val nick: String, // username
     val data: String, // message
+    val nick: String? = null, // username
     val sub: String? = null, // "1" for sub
     val features: List<String>? = null,
     val pronouns: String? = null,
@@ -24,3 +24,11 @@ data class SocketChatMessage(
         it == BOT_FEATURE || it == SUB_FEATURE || it == PROTECTED_FEATURE || it == MOD_FEATURE || it == ADMIN_FEATURE
     }
 }
+
+enum class MessageType {
+    MSG,
+    BROADCAST,
+    UNKNOWN
+}
+
+val messageTypesByName = MessageType.values().associateBy { it.name }
