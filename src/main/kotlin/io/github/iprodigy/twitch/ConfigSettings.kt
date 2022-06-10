@@ -11,5 +11,6 @@ data class ConfigSettings(
     val subsOnly: Boolean = false,
     val ignoreBots: Boolean = true,
     val includePronouns: Boolean = true,
+    val mirrorBroadcasts: Boolean = true,
     val twitchMessagePrefix: String = "[GGchat]"
 )

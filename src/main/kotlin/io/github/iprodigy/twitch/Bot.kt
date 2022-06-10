@@ -68,27 +68,7 @@ object Bot {
             it.baseUrl(config?.chatSocketUrl)
             it.taskExecutor(exec)
             it.wsPingPeriod(WSS_PING_PERIOD)
-
-            it.onTextMessage { msg ->
-                if (msg.startsWith("MSG {")) {
-                    val json = msg.substring("MSG ".length)
-                    exec.execute {
-                        val parsed = try {
-                            mapper.readValue(json, SocketChatMessage::class.java)
-                        } catch (e: Exception) {
-                            log.warn("Failed to parse socket chat message: $msg", e)
-                            null
-                        }
-
-                        if (parsed != null) {
-                            log.trace("Received message: $json")
-                            handleChatMessage(parsed)
-                        }
-                    }
-                } else {
-                    log.trace("Ignoring message: $msg")
-                }
-            }
+            it.onTextMessage { msg -> parseSocketMessage(msg) }
         }
     }
 
@@ -170,13 +150,55 @@ object Bot {
 
     private fun checkToken() = credential != null && credential.userId.isNullOrEmpty().not()
 
+    private fun parseSocketMessage(msg: String) {
+        val space = msg.indexOf(' ')
+        if (space < 0 || (space + 1) >= msg.length) return
+
+        val typeStr = msg.substring(0, space)
+        when (val type = messageTypesByName[typeStr] ?: MessageType.UNKNOWN) {
+            MessageType.MSG, MessageType.BROADCAST -> {
+                val json = msg.substring(space + 1)
+                exec.execute {
+                    val parsed = try {
+                        mapper.readValue(json, SocketChatMessage::class.java)
+                    } catch (e: Exception) {
+                        log.warn("Failed to parse socket message: $msg", e)
+                        null
+                    }
+
+                    if (parsed != null) {
+                        log.trace("Received message: $json")
+
+                        if (type == MessageType.MSG)
+                            handleChatMessage(parsed)
+                        else if (type == MessageType.BROADCAST)
+                            handleChatBroadcast(parsed)
+                    }
+                }
+            }
+            else -> log.trace("Ignoring message: $msg")
+        }
+    }
+
+    private fun handleChatBroadcast(message: SocketChatMessage) {
+        if (config!!.mirrorBroadcasts && message.data.startsWith('/').not()) {
+            sendTwitchMessage("/me " + message.data, dropCommands = false)
+        }
+    }
+
     private fun handleChatMessage(message: SocketChatMessage) {
+        if (message.nick == null) return
         if (config!!.ignoreBots && message.isBot()) return
         if (config.subsOnly && message.isPrivileged().not()) return
 
         val pronouns = if (config.includePronouns) message.pronouns?.let { pronounsById[it] }?.let { " ($it)" } ?: "" else ""
         val msg = "${config.twitchMessagePrefix} ${message.nick}$pronouns: ${message.data}".trim().take(TWITCH_MAX_MESSAGE_LENGTH)
-        if (message.nick.startsWith('/').not() && message.data.startsWith('/').not())
-            twitchChat!!.sendMessage(config.twitchChannelName, msg)
+        if (message.data.startsWith('/').not())
+            sendTwitchMessage(msg)
+    }
+
+    private fun sendTwitchMessage(message: String, dropCommands: Boolean = true) {
+        if (dropCommands && message.startsWith('/')) return
+        twitchChat!!.sendMessage(config!!.twitchChannelName, message)
     }
 }
