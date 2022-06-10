@@ -8,7 +8,7 @@ data class ConfigSettings(
     val chatSocketUrl: String,
     val twitchChannelName: String,
     var twitchMod: Boolean = false,
-    val subsOnly: Boolean = true,
+    val subsOnly: Boolean = false,
     val ignoreBots: Boolean = true,
     val includePronouns: Boolean = true,
     val twitchMessagePrefix: String = "[GGchat]"

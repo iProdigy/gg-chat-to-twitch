@@ -6,7 +6,7 @@
   "chat_socket_url": "",
   "twitch_channel_name": "",
   "twitch_mod": false,
-  "subs_only": true,
+  "subs_only": false,
   "ignore_bots": true,
   "include_pronouns": true,
   "twitch_message_prefix": ""
