@@ -8,3 +8,4 @@ out/
 *.log
 *.jar
 hs_err_pid*
+config.json
