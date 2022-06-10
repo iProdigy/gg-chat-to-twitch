@@ -181,8 +181,8 @@ object Bot {
     }
 
     private fun handleChatBroadcast(message: SocketChatMessage) {
-        if (config!!.mirrorBroadcasts) {
-            sendTwitchMessage(message.data)
+        if (config!!.mirrorBroadcasts && message.data.startsWith('/').not()) {
+            sendTwitchMessage("/me " + message.data, dropCommands = false)
         }
     }
 
