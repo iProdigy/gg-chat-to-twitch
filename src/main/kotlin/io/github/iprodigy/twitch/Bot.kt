@@ -174,7 +174,8 @@ object Bot {
         if (config!!.ignoreBots && message.isBot()) return
         if (config.subsOnly && message.isPrivileged().not()) return
 
-        val msg = "${config.twitchMessagePrefix} ${message.nick}: ${message.data}".trim().take(TWITCH_MAX_MESSAGE_LENGTH)
+        val pronouns = if (config.includePronouns) message.pronouns?.let { pronounsById[it] }?.let { " ($it)" } ?: "" else ""
+        val msg = "${config.twitchMessagePrefix} ${message.nick}$pronouns: ${message.data}".trim().take(TWITCH_MAX_MESSAGE_LENGTH)
         if (message.nick.startsWith('/').not() && message.data.startsWith('/').not())
             twitchChat!!.sendMessage(config.twitchChannelName, msg)
     }

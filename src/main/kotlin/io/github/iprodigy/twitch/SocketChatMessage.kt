@@ -11,7 +11,7 @@ data class SocketChatMessage(
     val data: String, // message
     val sub: String? = null, // "1" for sub
     val features: List<String>? = null,
-//    val pronouns: String,
+    val pronouns: String? = null,
 //    val timestamp: Long,
 //    val nodes: Map<String, Any>
 ) {

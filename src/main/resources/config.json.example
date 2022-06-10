@@ -8,5 +8,6 @@
   "twitch_mod": false,
   "subs_only": true,
   "ignore_bots": true,
+  "include_pronouns": true,
   "twitch_message_prefix": ""
 }
