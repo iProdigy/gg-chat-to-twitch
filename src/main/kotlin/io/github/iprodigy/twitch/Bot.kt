@@ -10,9 +10,12 @@ import com.github.twitch4j.auth.providers.TwitchIdentityProvider
 import com.github.twitch4j.chat.events.channel.UserStateEvent
 import com.github.twitch4j.chat.util.TwitchChatLimitHelper
 import com.github.twitch4j.client.websocket.WebsocketConnection
+import com.github.twitch4j.common.enums.TwitchLimitType
 import com.github.twitch4j.common.util.ThreadUtils
+import com.github.twitch4j.common.util.TwitchLimitRegistry
 import com.github.twitch4j.graphql.internal.type.CreatePollChoiceInput
 import com.github.twitch4j.graphql.internal.type.CreatePollInput
+import io.github.bucket4j.Bandwidth
 import org.slf4j.LoggerFactory
 import java.nio.file.Paths
 import java.time.Duration
@@ -49,12 +52,7 @@ object Bot {
     private val twitchClient = config?.let {
         TwitchClientBuilder.builder()
             .withChatAccount(credential)
-            .withChatRateLimit(
-                if (it.twitchMod)
-                    TwitchChatLimitHelper.MOD_MESSAGE_LIMIT
-                else
-                    TwitchChatLimitHelper.USER_MESSAGE_LIMIT
-            )
+            .withChatRateLimit(chatRateLimit(it.twitchMod))
             .withClientId(it.clientId)
             .withClientSecret(it.clientSecret)
             .withCredentialManager(
@@ -118,6 +116,7 @@ object Bot {
         twitchClient!!.eventManager.onEvent("bot-mod-tracker", UserStateEvent::class.java) {
             if (config!!.twitchMod != it.isModerator) {
                 config.twitchMod = it.isModerator
+                TwitchLimitRegistry.getInstance().setLimit(credential.userId, TwitchLimitType.CHAT_MESSAGE_LIMIT, listOf(chatRateLimit(it.isModerator)))
                 log.info("Bot twitch status changed to: ${if (it.isModerator) "modded" else "not modded"}")
             }
         }
@@ -240,4 +239,6 @@ object Bot {
         if (dropCommands && message.startsWith('/')) return
         twitchClient!!.chat.sendMessage(config!!.twitchChannelName, message)
     }
+
+    private fun chatRateLimit(modded: Boolean): Bandwidth = if (modded) TwitchChatLimitHelper.MOD_MESSAGE_LIMIT else TwitchChatLimitHelper.USER_MESSAGE_LIMIT
 }
