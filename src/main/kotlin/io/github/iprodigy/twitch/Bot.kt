@@ -5,12 +5,14 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.github.philippheuer.credentialmanager.CredentialManagerBuilder
 import com.github.philippheuer.credentialmanager.domain.OAuth2Credential
+import com.github.twitch4j.TwitchClientBuilder
 import com.github.twitch4j.auth.providers.TwitchIdentityProvider
-import com.github.twitch4j.chat.TwitchChatBuilder
 import com.github.twitch4j.chat.events.channel.UserStateEvent
 import com.github.twitch4j.chat.util.TwitchChatLimitHelper
 import com.github.twitch4j.client.websocket.WebsocketConnection
 import com.github.twitch4j.common.util.ThreadUtils
+import com.github.twitch4j.graphql.internal.type.CreatePollChoiceInput
+import com.github.twitch4j.graphql.internal.type.CreatePollInput
 import org.slf4j.LoggerFactory
 import java.nio.file.Paths
 import java.time.Duration
@@ -44,24 +46,32 @@ object Bot {
             }
         }
     }
-    private val twitchChat = credential?.let {
-        TwitchChatBuilder.builder()
-            .withChatAccount(it)
+    private val twitchClient = config?.let {
+        TwitchClientBuilder.builder()
+            .withChatAccount(credential)
             .withChatRateLimit(
-                if (config?.twitchMod == true)
+                if (it.twitchMod)
                     TwitchChatLimitHelper.MOD_MESSAGE_LIMIT
                 else
                     TwitchChatLimitHelper.USER_MESSAGE_LIMIT
             )
+            .withClientId(it.clientId)
+            .withClientSecret(it.clientSecret)
             .withCredentialManager(
                 CredentialManagerBuilder.builder().build().apply {
                     if (tip != null) registerIdentityProvider(tip)
                 }
             )
+            .withDefaultAuthToken(credential?.takeIf { x -> x.expiresIn == 0 })
+            .withDefaultFirstPartyToken(OAuth2Credential("twitch", it.firstPartyToken ?: ""))
+            .withEnableChat(true)
+            .withEnableGraphQL(it.firstPartyToken.isNullOrBlank().not())
+            .withEnableHelix(true)
             .withScheduledThreadPoolExecutor(exec)
             .withWsPingPeriod(WSS_PING_PERIOD)
             .build()
     }
+    private val channelId: String? by lazy { twitchClient?.helix?.getUsers(null, null, listOf(config!!.twitchChannelName))?.executeOrNull()?.users?.firstOrNull()?.id }
 
     private val socketConnection by lazy {
         WebsocketConnection {
@@ -105,7 +115,7 @@ object Bot {
         socketConnection.connect()
 
         // Track mod status
-        twitchChat!!.eventManager.onEvent("bot-mod-tracker", UserStateEvent::class.java) {
+        twitchClient!!.eventManager.onEvent("bot-mod-tracker", UserStateEvent::class.java) {
             if (config!!.twitchMod != it.isModerator) {
                 config.twitchMod = it.isModerator
                 log.info("Bot twitch status changed to: ${if (it.isModerator) "modded" else "not modded"}")
@@ -191,14 +201,43 @@ object Bot {
         if (config!!.ignoreBots && message.isBot()) return
         if (config.subsOnly && message.isPrivileged().not()) return
 
+        if (message.data.startsWith('/') || message.data.startsWith('!')) {
+            handleChatCommand(message)
+            return
+        }
+
         val pronouns = if (config.includePronouns) message.pronouns?.let { pronounsById[it] }?.let { " ($it)" } ?: "" else ""
         val msg = "${config.twitchMessagePrefix} ${message.nick}$pronouns: ${message.data}".trim().take(TWITCH_MAX_MESSAGE_LENGTH)
-        if (message.data.startsWith('/').not())
-            sendTwitchMessage(msg)
+        sendTwitchMessage(msg)
+    }
+
+    private fun handleChatCommand(message: SocketChatMessage) {
+        if (message.isMod() || message.isAdmin()) {
+            if (config!!.shouldMirrorPolls() && message.data.startsWith("/vote ") && message.data.endsWith('?')) {
+                createPoll(message.data.substring("/vote ".length).trim())
+            }
+        }
+    }
+
+    private fun createPoll(title: String, choices: List<String> = listOf("Yes (1)", "No (2)")) {
+        if (channelId == null) return
+        twitchClient!!.graphQL.createPoll(
+            null,
+            CreatePollInput.builder()
+                .title(title)
+                .choices(choices.map { CreatePollChoiceInput.builder().title(it).build() })
+                .durationSeconds(60)
+                .ownedBy(channelId!!)
+                .bitsVoting(true)
+                .bitsCost(10)
+                .isCommunityPointsVotingEnabled(true)
+                .communityPointsCost(1000)
+                .build()
+        ).executeOrNull()
     }
 
     private fun sendTwitchMessage(message: String, dropCommands: Boolean = true) {
         if (dropCommands && message.startsWith('/')) return
-        twitchChat!!.sendMessage(config!!.twitchChannelName, message)
+        twitchClient!!.chat.sendMessage(config!!.twitchChannelName, message)
     }
 }
