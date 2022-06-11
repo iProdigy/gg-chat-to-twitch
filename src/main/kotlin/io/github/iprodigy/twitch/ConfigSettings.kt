@@ -9,12 +9,13 @@ data class ConfigSettings(
     val chatSocketUrl: String,
     val twitchChannelName: String,
     var twitchMod: Boolean = false,
-    val subsOnly: Boolean = false,
-    val ignoreBots: Boolean = true,
-    val includePronouns: Boolean = true,
-    val mirrorBroadcasts: Boolean = true,
-    val mirrorPolls: Boolean = true,
-    val twitchMessagePrefix: String = "[GGchat]"
+    var subsOnly: Boolean = false,
+    var ignoreBots: Boolean = true,
+    var includePronouns: Boolean = true,
+    var mirrorBroadcasts: Boolean = true,
+    var mirrorPolls: Boolean = true,
+    var twitchMessagePrefix: String = "[GGchat]",
+    val commandTrigger: String = "-"
 ) {
     fun shouldMirrorPolls() = mirrorPolls && firstPartyToken.isNullOrBlank().not()
 }

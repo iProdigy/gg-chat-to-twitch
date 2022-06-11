@@ -7,6 +7,7 @@ import com.github.philippheuer.credentialmanager.CredentialManagerBuilder
 import com.github.philippheuer.credentialmanager.domain.OAuth2Credential
 import com.github.twitch4j.TwitchClientBuilder
 import com.github.twitch4j.auth.providers.TwitchIdentityProvider
+import com.github.twitch4j.chat.events.CommandEvent
 import com.github.twitch4j.chat.events.channel.UserStateEvent
 import com.github.twitch4j.chat.util.TwitchChatLimitHelper
 import com.github.twitch4j.client.websocket.WebsocketConnection
@@ -36,7 +37,7 @@ object Bot {
         disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
         // registerModule(JavaTimeModule())
     }
-    private val config = readConfig()
+    internal val config = readConfig()
     private val exec = ThreadUtils.getDefaultScheduledThreadPoolExecutor("ChatMirrorPool", Runtime.getRuntime().availableProcessors())
 
     private val tip = config?.let { TwitchIdentityProvider(it.clientId, it.clientSecret, "") }
@@ -55,11 +56,8 @@ object Bot {
             .withChatRateLimit(chatRateLimit(it.twitchMod))
             .withClientId(it.clientId)
             .withClientSecret(it.clientSecret)
-            .withCredentialManager(
-                CredentialManagerBuilder.builder().build().apply {
-                    if (tip != null) registerIdentityProvider(tip)
-                }
-            )
+            .withCommandTrigger(it.commandTrigger)
+            .withCredentialManager(CredentialManagerBuilder.builder().build().apply { if (tip != null) registerIdentityProvider(tip) })
             .withDefaultAuthToken(credential?.takeIf { x -> x.expiresIn == 0 })
             .withDefaultFirstPartyToken(OAuth2Credential("twitch", it.firstPartyToken ?: ""))
             .withEnableChat(true)
@@ -71,7 +69,7 @@ object Bot {
     }
     private val channelId: String? by lazy { twitchClient?.helix?.getUsers(null, null, listOf(config!!.twitchChannelName))?.executeOrNull()?.users?.firstOrNull()?.id }
 
-    private val socketConnection by lazy {
+    internal val socketConnection by lazy {
         WebsocketConnection {
             it.baseUrl(config?.chatSocketUrl)
             it.taskExecutor(exec)
@@ -120,6 +118,11 @@ object Bot {
                 log.info("Bot twitch status changed to: ${if (it.isModerator) "modded" else "not modded"}")
             }
         }
+
+        // Forward twitch commands to handler
+        twitchClient.eventManager.onEvent("command-tracker", CommandEvent::class.java) {
+            TwitchCommandManager.accept(it)
+        }
     }
 
     fun hasValidConfig() = config != null && config.accessToken.isNotBlank() && config.chatSocketUrl.isNotBlank() && config.twitchChannelName.isNotBlank() && checkToken()
@@ -141,7 +144,7 @@ object Bot {
         null
     }
 
-    private fun writeConfig() = try {
+    internal fun writeConfig() = try {
         getConfigResource()?.apply {
             writeText(mapper.writeValueAsString(config))
             log.debug("Successfully wrote latest config file")
