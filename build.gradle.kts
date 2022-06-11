@@ -17,7 +17,7 @@ repositories {
 
 dependencies {
     implementation(group = "com.fasterxml.jackson.module", name = "jackson-module-kotlin", version = "2.13.3")
-    implementation(group = "com.github.twitch4j", name = "twitch4j-chat", version = "1.10.0")
+    implementation(group = "com.github.twitch4j", name = "twitch4j", version = "1.10.0")
     implementation(group = "ch.qos.logback", name = "logback-classic", version = "1.2.11")
 }
 
