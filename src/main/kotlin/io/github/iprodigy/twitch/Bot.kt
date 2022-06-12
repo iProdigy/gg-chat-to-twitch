@@ -12,11 +12,14 @@ import com.github.twitch4j.chat.events.channel.UserStateEvent
 import com.github.twitch4j.chat.util.TwitchChatLimitHelper
 import com.github.twitch4j.client.websocket.WebsocketConnection
 import com.github.twitch4j.common.enums.TwitchLimitType
+import com.github.twitch4j.common.util.CryptoUtils
 import com.github.twitch4j.common.util.ThreadUtils
 import com.github.twitch4j.common.util.TwitchLimitRegistry
 import com.github.twitch4j.graphql.internal.type.CreatePollChoiceInput
 import com.github.twitch4j.graphql.internal.type.CreatePollInput
 import io.github.bucket4j.Bandwidth
+import io.github.iprodigy.twitch.util.executeOrNull
+import io.github.iprodigy.twitch.util.pronounsById
 import org.slf4j.LoggerFactory
 import java.nio.file.Paths
 import java.time.Duration
@@ -41,7 +44,7 @@ object Bot {
     private val exec = ThreadUtils.getDefaultScheduledThreadPoolExecutor("ChatMirrorPool", Runtime.getRuntime().availableProcessors())
 
     private val tip = config?.let { TwitchIdentityProvider(it.clientId, it.clientSecret, "") }
-    private val credential = config?.accessToken?.let {
+    internal val credential = config?.accessToken?.let {
         OAuth2Credential("twitch", it).apply {
             refreshToken = config.refreshToken
         }.let { cred ->
@@ -83,6 +86,9 @@ object Bot {
 
         log.info("Starting bot...")
 
+        // Start moderation helper service
+        ModerationHelper.start(config!!.twitchChannelName)
+
         // Keep our chat credential refreshed
         if (credential!!.expiresIn > 0) {
             log.debug("Initializing credential refresh task...")
@@ -96,7 +102,7 @@ object Bot {
                     credential.refreshToken = it.refreshToken
                     credential.expiresIn = it.expiresIn
 
-                    config!!.accessToken = it.accessToken
+                    config.accessToken = it.accessToken
                     config.refreshToken = it.refreshToken
 
                     writeConfig()
@@ -112,7 +118,7 @@ object Bot {
 
         // Track mod status
         twitchClient!!.eventManager.onEvent("bot-mod-tracker", UserStateEvent::class.java) {
-            if (config!!.twitchMod != it.isModerator) {
+            if (config.twitchMod != it.isModerator) {
                 config.twitchMod = it.isModerator
                 TwitchLimitRegistry.getInstance().setLimit(credential.userId, TwitchLimitType.CHAT_MESSAGE_LIMIT, listOf(chatRateLimit(it.isModerator)))
                 log.info("Bot twitch status changed to: ${if (it.isModerator) "modded" else "not modded"}")
@@ -121,7 +127,8 @@ object Bot {
 
         // Forward twitch commands to handler
         twitchClient.eventManager.onEvent("command-tracker", CommandEvent::class.java) {
-            TwitchCommandManager.accept(it)
+            if (it.commandPrefix.isNotEmpty())
+                TwitchCommandManager.accept(it)
         }
     }
 
@@ -210,7 +217,7 @@ object Bot {
 
         val pronouns = if (config.includePronouns) message.pronouns?.let { pronounsById[it] }?.let { " ($it)" } ?: "" else ""
         val msg = "${config.twitchMessagePrefix} ${message.nick}$pronouns: ${message.data}".trim().take(TWITCH_MAX_MESSAGE_LENGTH)
-        sendTwitchMessage(msg)
+        sendTwitchMessage(msg, nonce = "${message.nick}:${message.timestamp ?: CryptoUtils.generateNonce(6)}")
     }
 
     private fun handleChatCommand(message: SocketChatMessage) {
@@ -238,9 +245,9 @@ object Bot {
         ).executeOrNull()
     }
 
-    private fun sendTwitchMessage(message: String, dropCommands: Boolean = true) {
+    internal fun sendTwitchMessage(message: String, dropCommands: Boolean = true, nonce: String? = null, replyMsgId: String? = null) {
         if (dropCommands && message.startsWith('/')) return
-        twitchClient!!.chat.sendMessage(config!!.twitchChannelName, message)
+        twitchClient!!.chat.sendMessage(config!!.twitchChannelName, message, nonce, replyMsgId)
     }
 
     private fun chatRateLimit(modded: Boolean): Bandwidth = if (modded) TwitchChatLimitHelper.MOD_MESSAGE_LIMIT else TwitchChatLimitHelper.USER_MESSAGE_LIMIT
