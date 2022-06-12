@@ -34,31 +34,31 @@ class SiteChatConnection(
         val typeStr = msg.substring(0, space)
         val json = msg.substring(space + 1)
         when (val type = messageTypesByName[typeStr] ?: MessageType.UNKNOWN) {
-            MessageType.MSG, MessageType.BROADCAST, MessageType.BAN, MessageType.MUTE -> {
-                executor.execute {
-                    val parsed = try {
-                        mapper.readValue(json, SocketChatMessage::class.java)
-                    } catch (e: Exception) {
-                        Bot.log.warn("Failed to parse socket message: $msg", e)
-                        null
-                    }
-
-                    if (parsed != null) {
-                        Bot.log.trace("Received message: $json")
-
-                        when (type) {
-                            MessageType.MSG -> handleMessage(parsed)
-                            MessageType.BROADCAST -> handleBroadcast(parsed)
-                            MessageType.BAN, MessageType.MUTE -> handlePurge(parsed)
-                            else -> Bot.log.trace("Dropping message: $msg")
-                        }
-                    }
-                }
-            }
+            MessageType.MSG, MessageType.BROADCAST, MessageType.BAN, MessageType.MUTE -> handleJson(type, msg, json)
             MessageType.PING -> executor.execute { socket.sendText("PONG $json") }
             MessageType.REFRESH -> executor.execute { reconnect() }
             MessageType.UNKNOWN -> Bot.log.debug("Unknown message type: $msg")
             else -> Bot.log.trace("Ignoring message: $msg")
+        }
+    }
+
+    private fun handleJson(type: MessageType, rawMsg: String, json: String) = executor.execute {
+        val parsed = try {
+            mapper.readValue(json, SocketChatMessage::class.java)
+        } catch (e: Exception) {
+            Bot.log.warn("Failed to parse socket message: $rawMsg", e)
+            null
+        }
+
+        if (parsed != null) {
+            Bot.log.trace("Received message: $json")
+
+            when (type) {
+                MessageType.MSG -> handleMessage(parsed)
+                MessageType.BROADCAST -> handleBroadcast(parsed)
+                MessageType.BAN, MessageType.MUTE -> handlePurge(parsed)
+                else -> Bot.log.trace("Dropping message: $rawMsg")
+            }
         }
     }
 
