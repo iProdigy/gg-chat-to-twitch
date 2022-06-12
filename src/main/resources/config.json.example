@@ -10,5 +10,8 @@
   "ignore_bots": true,
   "include_pronouns": true,
   "mirror_broadcasts": true,
-  "twitch_message_prefix": ""
+  "mirror_polls": true,
+  "twitch_message_prefix": "",
+  "twitch_message_postfix": "",
+  "command_trigger": ""
 }
