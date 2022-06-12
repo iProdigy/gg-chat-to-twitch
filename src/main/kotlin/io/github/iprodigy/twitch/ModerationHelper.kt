@@ -5,15 +5,14 @@ import com.github.benmanes.caffeine.cache.Caffeine
 import com.github.twitch4j.chat.TwitchChatBuilder
 import com.github.twitch4j.chat.events.channel.ChannelMessageEvent
 import io.github.iprodigy.twitch.util.ConcurrentBoundedDeque
-import io.github.iprodigy.twitch.util.drain
-import java.util.*
+import io.github.iprodigy.twitch.util.DrainableDeque
 import java.util.concurrent.TimeUnit
 
 private const val CACHE_SECONDS = 120L
 private const val RECENT_MESSAGE_LIMIT = 16
 
 object ModerationHelper {
-    private val recentMessageIdsByName: Cache<String, Deque<String>> = Caffeine.newBuilder()
+    private val recentMessageIdsByName: Cache<String, DrainableDeque<String>> = Caffeine.newBuilder()
         .expireAfterAccess(CACHE_SECONDS, TimeUnit.SECONDS)
         .build()
 
