@@ -126,6 +126,7 @@ object Bot {
         }
 
         // Forward twitch commands to handler
+        twitchClient.chat.joinChannel(config.twitchChannelName)
         twitchClient.eventManager.onEvent("command-tracker", CommandEvent::class.java) {
             if (it.commandPrefix.isNotEmpty())
                 TwitchCommandManager.accept(it)
