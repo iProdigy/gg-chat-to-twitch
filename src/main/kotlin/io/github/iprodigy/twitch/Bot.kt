@@ -10,17 +10,11 @@ import com.github.twitch4j.auth.providers.TwitchIdentityProvider
 import com.github.twitch4j.chat.events.CommandEvent
 import com.github.twitch4j.chat.events.channel.ChannelNoticeEvent
 import com.github.twitch4j.chat.events.channel.UserStateEvent
-import com.github.twitch4j.chat.util.TwitchChatLimitHelper
-import com.github.twitch4j.client.websocket.WebsocketConnection
 import com.github.twitch4j.common.enums.TwitchLimitType
-import com.github.twitch4j.common.util.CryptoUtils
 import com.github.twitch4j.common.util.ThreadUtils
 import com.github.twitch4j.common.util.TwitchLimitRegistry
-import com.github.twitch4j.graphql.internal.type.CreatePollChoiceInput
-import com.github.twitch4j.graphql.internal.type.CreatePollInput
-import io.github.bucket4j.Bandwidth
+import io.github.iprodigy.twitch.util.chatRateLimit
 import io.github.iprodigy.twitch.util.executeOrNull
-import io.github.iprodigy.twitch.util.pronounsById
 import org.slf4j.LoggerFactory
 import java.nio.file.Paths
 import java.time.Duration
@@ -30,17 +24,16 @@ import kotlin.io.path.toPath
 import kotlin.io.path.writeText
 
 private const val CONFIG_FILE_NAME = "./config.json"
-private const val WSS_PING_PERIOD = 30_000
-private const val TWITCH_MAX_MESSAGE_LENGTH = 500
+
+val mapper = jacksonObjectMapper().apply {
+    propertyNamingStrategy = PropertyNamingStrategies.SNAKE_CASE
+    disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+    // registerModule(JavaTimeModule())
+}
 
 object Bot {
     val log = LoggerFactory.getLogger(javaClass)!!
 
-    private val mapper = jacksonObjectMapper().apply {
-        propertyNamingStrategy = PropertyNamingStrategies.SNAKE_CASE
-        disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-        // registerModule(JavaTimeModule())
-    }
     internal val config = readConfig()
     private val exec = ThreadUtils.getDefaultScheduledThreadPoolExecutor("ChatMirrorPool", Runtime.getRuntime().availableProcessors())
 
@@ -54,7 +47,7 @@ object Bot {
             }
         }
     }
-    private val twitchClient = config?.let {
+    val twitchClient = config?.let {
         TwitchClientBuilder.builder()
             .withChatAccount(credential)
             .withChatRateLimit(chatRateLimit(it.twitchMod))
@@ -71,16 +64,9 @@ object Bot {
             .withWsPingPeriod(WSS_PING_PERIOD)
             .build()
     }
-    private val channelId: String? by lazy { twitchClient?.helix?.getUsers(null, null, listOf(config!!.twitchChannelName))?.executeOrNull()?.users?.firstOrNull()?.id }
+    val channelId: String? by lazy { twitchClient?.helix?.getUsers(null, null, listOf(config!!.twitchChannelName))?.executeOrNull()?.users?.firstOrNull()?.id }
 
-    internal val socketConnection by lazy {
-        WebsocketConnection {
-            it.baseUrl(config?.chatSocketUrl)
-            it.taskExecutor(exec)
-            it.wsPingPeriod(WSS_PING_PERIOD)
-            it.onTextMessage { msg -> parseSocketMessage(msg) }
-        }
-    }
+    internal val socketConnection by lazy { config?.let { SiteChatConnection(it.chatSocketUrl, exec) } }
 
     fun start() {
         assert(hasValidConfig())
@@ -115,7 +101,7 @@ object Bot {
 
         // Connect to chat socket (& start the message forwarder)
         log.debug("Attempting to connect to chat socket...")
-        socketConnection.connect()
+        socketConnection!!.connect()
 
         // Track mod status
         twitchClient!!.eventManager.onEvent("bot-mod-tracker", UserStateEvent::class.java) {
@@ -142,16 +128,15 @@ object Bot {
     fun hasValidConfig() = config != null && config.accessToken.isNotBlank() && config.chatSocketUrl.isNotBlank() && config.twitchChannelName.isNotBlank() && checkToken()
 
     private fun readConfig(): ConfigSettings? = try {
-        getConfigResource().let {
-            if (it != null) {
-                it.readText().let { text ->
-                    log.trace("Read config contents: $text")
-                    mapper.readValue(text, ConfigSettings::class.java)
-                }
-            } else {
-                log.warn("Failed to locate config")
-                null
+        val cfg = getConfigResource()
+        if (cfg != null) {
+            cfg.readText().let {
+                log.trace("Read config contents: $it")
+                mapper.readValue(it, ConfigSettings::class.java)
             }
+        } else {
+            log.warn("Failed to locate config")
+            null
         }
     } catch (e: Exception) {
         log.error("Failed to read or parse config", e)
@@ -176,86 +161,8 @@ object Bot {
 
     private fun checkToken() = credential != null && credential.userId.isNullOrEmpty().not()
 
-    private fun parseSocketMessage(msg: String) {
-        val space = msg.indexOf(' ')
-        if (space < 0 || (space + 1) >= msg.length) return
-
-        val typeStr = msg.substring(0, space)
-        when (val type = messageTypesByName[typeStr] ?: MessageType.UNKNOWN) {
-            MessageType.MSG, MessageType.BROADCAST -> {
-                val json = msg.substring(space + 1)
-                exec.execute {
-                    val parsed = try {
-                        mapper.readValue(json, SocketChatMessage::class.java)
-                    } catch (e: Exception) {
-                        log.warn("Failed to parse socket message: $msg", e)
-                        null
-                    }
-
-                    if (parsed != null) {
-                        log.trace("Received message: $json")
-
-                        if (type == MessageType.MSG)
-                            handleChatMessage(parsed)
-                        else if (type == MessageType.BROADCAST)
-                            handleChatBroadcast(parsed)
-                    }
-                }
-            }
-            else -> log.trace("Ignoring message: $msg")
-        }
-    }
-
-    private fun handleChatBroadcast(message: SocketChatMessage) {
-        if (config!!.mirrorBroadcasts && message.data.startsWith('/').not()) {
-            sendTwitchMessage("/me " + message.data, dropCommands = false)
-        }
-    }
-
-    private fun handleChatMessage(message: SocketChatMessage) {
-        if (message.nick == null) return
-        if (config!!.ignoreBots && message.isBot()) return
-        if (config.subsOnly && message.isPrivileged().not()) return
-
-        if (message.data.startsWith('/') || message.data.startsWith('!')) {
-            handleChatCommand(message)
-            return
-        }
-
-        val pronouns = if (config.includePronouns) message.pronouns?.let { pronounsById[it] }?.let { " ($it)" } ?: "" else ""
-        val msg = "${config.twitchMessagePrefix} ${message.nick}$pronouns: ${message.data}".trim().take(TWITCH_MAX_MESSAGE_LENGTH - config.twitchMessagePostfix.length) + config.twitchMessagePostfix
-        sendTwitchMessage(msg, nonce = "${message.nick}:${message.timestamp ?: CryptoUtils.generateNonce(6)}")
-    }
-
-    private fun handleChatCommand(message: SocketChatMessage) {
-        if (message.isMod() || message.isAdmin()) {
-            if (config!!.shouldMirrorPolls() && message.data.startsWith("/vote ") && message.data.endsWith('?')) {
-                createPoll(message.data.substring("/vote ".length).trim())
-            }
-        }
-    }
-
-    private fun createPoll(title: String, choices: List<String> = listOf("Yes (1)", "No (2)")) {
-        if (channelId == null) return
-        twitchClient!!.graphQL.createPoll(
-            null,
-            CreatePollInput.builder()
-                .title(title)
-                .choices(choices.map { CreatePollChoiceInput.builder().title(it).build() })
-                .durationSeconds(60)
-                .ownedBy(channelId!!)
-                .bitsVoting(true)
-                .bitsCost(10)
-                .isCommunityPointsVotingEnabled(true)
-                .communityPointsCost(1000)
-                .build()
-        ).executeOrNull()
-    }
-
     internal fun sendTwitchMessage(message: String, dropCommands: Boolean = true, nonce: String? = null, replyMsgId: String? = null) {
         if (dropCommands && message.startsWith('/')) return
         twitchClient!!.chat.sendMessage(config!!.twitchChannelName, message, nonce, replyMsgId)
     }
-
-    private fun chatRateLimit(modded: Boolean): Bandwidth = if (modded) TwitchChatLimitHelper.MOD_MESSAGE_LIMIT else TwitchChatLimitHelper.USER_MESSAGE_LIMIT
 }

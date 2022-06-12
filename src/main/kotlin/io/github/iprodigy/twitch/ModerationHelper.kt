@@ -9,9 +9,12 @@ import io.github.iprodigy.twitch.util.drain
 import java.util.*
 import java.util.concurrent.TimeUnit
 
+private const val CACHE_SECONDS = 120L
+private const val RECENT_MESSAGE_LIMIT = 16
+
 object ModerationHelper {
     private val recentMessageIdsByName: Cache<String, Deque<String>> = Caffeine.newBuilder()
-        .expireAfterAccess(120, TimeUnit.SECONDS)
+        .expireAfterAccess(CACHE_SECONDS, TimeUnit.SECONDS)
         .build()
 
     private val readConnection = TwitchChatBuilder.builder().build().apply {
@@ -21,7 +24,7 @@ object ModerationHelper {
                     val msgId = e.messageEvent.messageId.orElse(null) ?: return@ifPresent
                     val delimIndex = nonce.indexOf(':').takeIf { it >= 0 } ?: return@ifPresent
                     val name = nonce.substring(0, delimIndex).lowercase().trim()
-                    recentMessageIdsByName.get(name) { ConcurrentBoundedDeque(16) }!!.offerFirst(msgId)
+                    recentMessageIdsByName.get(name) { ConcurrentBoundedDeque(RECENT_MESSAGE_LIMIT) }!!.offerFirst(msgId)
                 }
             }
         }
