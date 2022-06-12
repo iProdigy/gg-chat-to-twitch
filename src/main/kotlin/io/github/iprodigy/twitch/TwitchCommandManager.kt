@@ -17,9 +17,9 @@ object TwitchCommandManager {
     }
 
     init {
-        commandHandlers["connect"] = { Bot.socketConnection.connect() }
-        commandHandlers["disconnect"] = { Bot.socketConnection.disconnect() }
-        commandHandlers["reconnect"] = { Bot.socketConnection.reconnect() }
+        commandHandlers["connect"] = { Bot.socketConnection?.connect() }
+        commandHandlers["disconnect"] = { Bot.socketConnection?.disconnect() }
+        commandHandlers["reconnect"] = { Bot.socketConnection?.reconnect() }
         commandHandlers["save"] = { Bot.writeConfig() }
         commandHandlers["setprefix"] = { Bot.config!!.twitchMessagePrefix = it.command.substring("setprefix".length) }
         commandHandlers["setpostfix"] = { Bot.config!!.twitchMessagePostfix = it.command.substring("setpostfix".length) }
