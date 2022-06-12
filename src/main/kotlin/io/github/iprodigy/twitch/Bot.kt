@@ -8,6 +8,7 @@ import com.github.philippheuer.credentialmanager.domain.OAuth2Credential
 import com.github.twitch4j.TwitchClientBuilder
 import com.github.twitch4j.auth.providers.TwitchIdentityProvider
 import com.github.twitch4j.chat.events.CommandEvent
+import com.github.twitch4j.chat.events.channel.ChannelNoticeEvent
 import com.github.twitch4j.chat.events.channel.UserStateEvent
 import com.github.twitch4j.chat.util.TwitchChatLimitHelper
 import com.github.twitch4j.client.websocket.WebsocketConnection
@@ -130,6 +131,11 @@ object Bot {
         twitchClient.eventManager.onEvent("command-tracker", CommandEvent::class.java) {
             if (it.commandPrefix.isNotEmpty())
                 TwitchCommandManager.accept(it)
+        }
+
+        // Log notices sent by twitch
+        twitchClient.eventManager.onEvent("notice-debugger", ChannelNoticeEvent::class.java) {
+            log.debug("Received notice (${it.msgId}): ${it.message}")
         }
     }
 
