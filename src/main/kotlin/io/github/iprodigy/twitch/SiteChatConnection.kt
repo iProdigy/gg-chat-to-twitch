@@ -71,7 +71,8 @@ class SiteChatConnection(
         if (message.data.startsWith('/') || message.data.startsWith('!')) {
             this.handleChatCommand(message)
         } else {
-            if (Bot.config.anyFeaturesRequired.isNotEmpty() && (message.features.isNullOrEmpty() || Collections.disjoint(Bot.config.anyFeaturesRequired, message.features))) return
+            val anyFeaturesRequired = Bot.config.anyFeaturesRequired
+            if (anyFeaturesRequired != null && anyFeaturesRequired.isNotEmpty() && (message.features.isNullOrEmpty() || Collections.disjoint(anyFeaturesRequired, message.features))) return
 
             val pronouns = if (Bot.config.includePronouns) message.pronouns?.let { pronounsById[it] }?.let { " ($it)" } ?: "" else ""
             val msg = "${Bot.config.twitchMessagePrefix} ${message.nick}$pronouns: ${message.data}".trim()
