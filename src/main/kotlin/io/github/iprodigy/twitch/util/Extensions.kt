@@ -20,7 +20,7 @@ fun <T> HystrixCommand<T>.executeOrNull(
 // Collections
 fun <T : Any, C : MutableCollection<T>> Queue<T>.drain(supplier: () -> C): C {
     val collection = supplier()
-    if (collection == this) throw IllegalArgumentException("Cannot drain collection to itself!")
+    require(collection != this) { "Cannot drain collection to itself!" }
 
     while (true) {
         val e = this.poll() ?: break
