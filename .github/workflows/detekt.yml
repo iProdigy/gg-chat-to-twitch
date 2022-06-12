@@ -2,7 +2,7 @@ name: detekt
 
 on:
   push:
-    branches: [ master ]
+    branches: [ "main" ]
 
  jobs:
    detekt:
@@ -14,5 +14,3 @@ on:
 
        - name: "detekt"
          uses: natiginfo/action-detekt-all@1.21.0-RC1
-         with:
-          args: --fail-fast --config detekt.yml
