@@ -55,6 +55,7 @@ class SiteChatConnection(
                     }
                 }
             }
+            MessageType.REFRESH -> executor.execute { reconnect() }
             MessageType.UNKNOWN -> Bot.log.debug("Unknown message type: $msg")
             else -> Bot.log.trace("Ignoring message: $msg")
         }
