@@ -32,5 +32,14 @@ object ModerationHelper {
 
     fun start(channelName: String) = readConnection.joinChannel(channelName)
 
-    fun drainRecentMessageIds(name: String) = recentMessageIdsByName.getIfPresent(name.lowercase())?.drain()
+    fun purge(name: String) {
+        val msgIds = drainRecentMessageIds(name)?.takeIf { it.isNotEmpty() }
+        if (msgIds != null && Bot.config!!.twitchMod) {
+            msgIds.forEach {
+                Bot.sendTwitchMessage("/delete $it", dropCommands = false)
+            }
+        }
+    }
+
+    private fun drainRecentMessageIds(name: String) = recentMessageIdsByName.getIfPresent(name.lowercase())?.drain()
 }

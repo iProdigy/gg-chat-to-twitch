@@ -26,6 +26,15 @@ data class SocketChatMessage(
 }
 
 enum class MessageType {
+    AWARE,
+    BAN,
+    UNBAN,
+    MUTE,
+    UNMUTE,
+    NAMES,
+    JOIN,
+    QUIT,
+    REFRESH,
     MSG,
     BROADCAST,
     UNKNOWN
