@@ -25,7 +25,7 @@ fun <T : Any?, C : MutableCollection<T>> Queue<T>.drainTo(supplier: () -> C): C 
     while (isNotEmpty()) {
         val e = try {
             remove()
-        } catch (e: NoSuchElementException) {
+        } catch (ignored: NoSuchElementException) {
             break
         }
         collection += e
