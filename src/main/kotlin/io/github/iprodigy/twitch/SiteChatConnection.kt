@@ -85,7 +85,7 @@ class SiteChatConnection(
 
     private fun handleChatUserMessage(message: SocketChatMessage) {
         val anyFeaturesRequired = Bot.config!!.anyFeaturesRequired
-        if (anyFeaturesRequired != null && anyFeaturesRequired.isNotEmpty() && (message.features.isNullOrEmpty() || Collections.disjoint(anyFeaturesRequired, message.features))) return
+        if (!anyFeaturesRequired.isNullOrEmpty() && (message.features.isNullOrEmpty() || Collections.disjoint(anyFeaturesRequired, message.features))) return
 
         val pronouns = if (Bot.config.includePronouns) message.pronouns?.let { pronounsById[it] }?.let { " ($it)" } ?: "" else ""
         val msg = "${Bot.config.twitchMessagePrefix} ${message.nick}$pronouns: ${message.data}".trim()
