@@ -15,6 +15,7 @@ data class ConfigSettings(
     var mirrorBroadcasts: Boolean = true,
     var mirrorPolls: Boolean = true,
     var twitchMessagePrefix: String = "[GGchat]",
+    var twitchMessagePostfix: String = "",
     val commandTrigger: String = "-"
 ) {
     fun shouldMirrorPolls() = mirrorPolls && firstPartyToken.isNullOrBlank().not()

@@ -21,7 +21,8 @@ object TwitchCommandManager {
         commandHandlers["disconnect"] = { Bot.socketConnection.disconnect() }
         commandHandlers["reconnect"] = { Bot.socketConnection.reconnect() }
         commandHandlers["save"] = { Bot.writeConfig() }
-        commandHandlers["setprefix"] = { Bot.config!!.twitchMessagePrefix = it.command.substring("setprefix".length).trim() }
+        commandHandlers["setprefix"] = { Bot.config!!.twitchMessagePrefix = it.command.substring("setprefix".length) }
+        commandHandlers["setpostfix"] = { Bot.config!!.twitchMessagePostfix = it.command.substring("setpostfix".length) }
 
         fun registerBooleanConfigCommands(label: String, getter: () -> Boolean, setter: (Boolean) -> Unit) {
             commandHandlers["enable" + label.lowercase()] = { setter(true) }
