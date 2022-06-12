@@ -23,3 +23,5 @@ jobs:
           distribution: temurin
       - name: detekt
         uses: natiginfo/action-detekt-all@1.21.0-RC1
+        with:
+          args: -ex MaxLineLength -ex ReturnCount -ex TooGenericExceptionCaught -ex TooManyFunctions
