@@ -34,7 +34,9 @@ enum class MessageType {
     NAMES,
     JOIN,
     QUIT,
+    PING,
     REFRESH,
+    SUBONLY,
     MSG,
     BROADCAST,
     UNKNOWN

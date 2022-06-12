@@ -32,9 +32,9 @@ class SiteChatConnection(
         if (space < 0 || (space + 1) >= msg.length) return
 
         val typeStr = msg.substring(0, space)
+        val json = msg.substring(space + 1)
         when (val type = messageTypesByName[typeStr] ?: MessageType.UNKNOWN) {
             MessageType.MSG, MessageType.BROADCAST, MessageType.BAN, MessageType.MUTE -> {
-                val json = msg.substring(space + 1)
                 executor.execute {
                     val parsed = try {
                         mapper.readValue(json, SocketChatMessage::class.java)
@@ -55,6 +55,7 @@ class SiteChatConnection(
                     }
                 }
             }
+            MessageType.PING -> executor.execute { socket.sendText("PONG $json") }
             MessageType.REFRESH -> executor.execute { reconnect() }
             MessageType.UNKNOWN -> Bot.log.debug("Unknown message type: $msg")
             else -> Bot.log.trace("Ignoring message: $msg")
