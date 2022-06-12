@@ -32,4 +32,4 @@ fun <T : Any, C : MutableCollection<T>> Queue<T>.drain(supplier: () -> C): C {
 
 fun <T : Any> Queue<T>.drain(): Collection<T> = this.drain { ArrayDeque() }
 
-fun <T> Collection<T>.ensureSet(): Set<T> = if (this is Set) this else this.toSet()
+fun <T> Iterable<T>.ensureSet(): Set<T> = if (this is Set) this else this.toSet()

@@ -5,6 +5,7 @@ import com.github.twitch4j.common.util.CryptoUtils
 import io.github.iprodigy.twitch.util.TWITCH_MAX_MESSAGE_LENGTH
 import io.github.iprodigy.twitch.util.createPoll
 import io.github.iprodigy.twitch.util.pronounsById
+import java.util.Collections
 import java.util.concurrent.ScheduledExecutorService
 
 private const val NONCE_LENGTH = 6
@@ -70,6 +71,8 @@ class SiteChatConnection(
         if (message.data.startsWith('/') || message.data.startsWith('!')) {
             this.handleChatCommand(message)
         } else {
+            if (Bot.config.anyFeaturesRequired.isNotEmpty() && (message.features.isNullOrEmpty() || Collections.disjoint(Bot.config.anyFeaturesRequired, message.features))) return
+
             val pronouns = if (Bot.config.includePronouns) message.pronouns?.let { pronounsById[it] }?.let { " ($it)" } ?: "" else ""
             val msg = "${Bot.config.twitchMessagePrefix} ${message.nick}$pronouns: ${message.data}".trim()
                 .take(TWITCH_MAX_MESSAGE_LENGTH - Bot.config.twitchMessagePostfix.length) + Bot.config.twitchMessagePostfix
