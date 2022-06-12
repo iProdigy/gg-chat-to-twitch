@@ -1,4 +1,4 @@
-package io.github.iprodigy.twitch
+package io.github.iprodigy.twitch.util
 
 val pronounsById: Map<String, String> = mapOf(
     "1" to "He/Him",

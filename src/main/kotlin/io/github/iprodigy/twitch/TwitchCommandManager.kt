@@ -34,5 +34,15 @@ object TwitchCommandManager {
         registerBooleanConfigCommands("pronouns", { Bot.config!!.includePronouns }, { Bot.config!!.includePronouns = it })
         registerBooleanConfigCommands("broadcasts", { Bot.config!!.mirrorBroadcasts }, { Bot.config!!.mirrorBroadcasts = it })
         registerBooleanConfigCommands("polls", { Bot.config!!.mirrorPolls }, { Bot.config!!.mirrorPolls = it })
+
+        commandHandlers["purge"] = { e ->
+            val name = e.command.substring("purge".length).trim().takeIf { it.isNotEmpty() }
+            val msgIds = name?.let { ModerationHelper.drainRecentMessageIds(it) }?.takeIf { it.isNotEmpty() }
+            if (msgIds != null && Bot.config!!.twitchMod) {
+                msgIds.forEach {
+                    Bot.sendTwitchMessage("/delete $it", dropCommands = false)
+                }
+            }
+        }
     }
 }

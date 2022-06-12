@@ -12,7 +12,7 @@ data class SocketChatMessage(
     val sub: String? = null, // "1" for sub
     val features: List<String>? = null,
     val pronouns: String? = null,
-//    val timestamp: Long,
+    val timestamp: Long?,
 //    val nodes: Map<String, Any>
 ) {
     fun isBot(): Boolean = features?.contains(BOT_FEATURE) == true
