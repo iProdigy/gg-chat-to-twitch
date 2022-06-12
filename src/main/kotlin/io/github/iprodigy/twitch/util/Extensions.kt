@@ -2,8 +2,8 @@ package io.github.iprodigy.twitch.util
 
 import com.netflix.hystrix.HystrixCommand
 import io.github.iprodigy.twitch.Bot
+import java.util.NoSuchElementException
 import java.util.Queue
-import kotlin.collections.ArrayDeque
 
 // Hystrix
 fun <T> HystrixCommand<T>.executeOrNull(
@@ -18,18 +18,20 @@ fun <T> HystrixCommand<T>.executeOrNull(
 }
 
 // Collections
-fun <T : Any, C : MutableCollection<T>> Queue<T>.drain(supplier: () -> C): C {
+fun <T : Any?, C : MutableCollection<T>> Queue<T>.drainTo(supplier: () -> C): C {
     val collection = supplier()
     require(collection != this) { "Cannot drain collection to itself!" }
 
-    while (true) {
-        val e = this.poll() ?: break
+    while (isNotEmpty()) {
+        val e = try {
+            remove()
+        } catch (e: NoSuchElementException) {
+            break
+        }
         collection += e
     }
 
     return collection
 }
-
-fun <T : Any> Queue<T>.drain(): Collection<T> = this.drain { ArrayDeque() }
 
 fun <T> Iterable<T>.ensureSet(): Set<T> = if (this is Set) this else this.toSet()

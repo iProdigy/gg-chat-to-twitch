@@ -1,6 +1,8 @@
 package io.github.iprodigy.twitch.util
 
-import java.util.*
+import java.util.ArrayDeque
+import java.util.Deque
+import java.util.Queue
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import java.util.function.BiConsumer
 import kotlin.concurrent.read
@@ -9,7 +11,13 @@ import kotlin.concurrent.write
 private const val ADDING_TO_HEAD = false
 private const val ADDING_TO_TAIL = true
 
-class ConcurrentBoundedDeque<E>(private val fixedCapacity: Int, fair: Boolean = false, private val policy: RemovalPolicy = RemovalPolicy.OPPOSITE) : Deque<E>, MutableCollection<E> {
+interface DrainableQueue<E> : Queue<E>, MutableCollection<E> {
+    fun drain(): Collection<E> = drainTo { ArrayDeque() }
+}
+
+interface DrainableDeque<E> : Deque<E>, DrainableQueue<E>
+
+class ConcurrentBoundedDeque<E>(private val fixedCapacity: Int, fair: Boolean = false, private val policy: RemovalPolicy = RemovalPolicy.OPPOSITE) : DrainableDeque<E> {
     private val lock = ReentrantReadWriteLock(fair)
     private val queue = ArrayDeque<E>(fixedCapacity)
 
@@ -119,6 +127,17 @@ class ConcurrentBoundedDeque<E>(private val fixedCapacity: Int, fair: Boolean = 
     override fun push(e: E) = addFirst(e)
 
     override fun pop(): E = removeFirst()
+
+    override fun drain(): Collection<E> = if (isEmpty()) emptyList() else lock.write {
+        val n = queue.size
+        if (n == 0) return@write emptyList()
+
+        val q = ArrayDeque<E>(n)
+        while (queue.isNotEmpty()) {
+            q += queue.poll()
+        }
+        q
+    }
 
     override fun iterator(): MutableIterator<E> = SnapshotIterator()
 
