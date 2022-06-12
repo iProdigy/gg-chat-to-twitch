@@ -2,7 +2,7 @@ package io.github.iprodigy.twitch.util
 
 import com.netflix.hystrix.HystrixCommand
 import io.github.iprodigy.twitch.Bot
-import java.util.*
+import java.util.Queue
 import kotlin.collections.ArrayDeque
 
 // Hystrix

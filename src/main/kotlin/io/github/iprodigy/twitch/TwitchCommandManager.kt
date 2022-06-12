@@ -38,12 +38,7 @@ object TwitchCommandManager {
 
         commandHandlers["purge"] = { e ->
             val name = e.command.substring("purge".length).trim().takeIf { it.isNotEmpty() }
-            val msgIds = name?.let { ModerationHelper.drainRecentMessageIds(it) }?.takeIf { it.isNotEmpty() }
-            if (msgIds != null && Bot.config!!.twitchMod) {
-                msgIds.forEach {
-                    Bot.sendTwitchMessage("/delete $it", dropCommands = false)
-                }
-            }
+            name?.run { ModerationHelper.purge(this) }
         }
     }
 }

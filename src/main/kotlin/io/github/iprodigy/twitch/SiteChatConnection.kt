@@ -33,7 +33,7 @@ class SiteChatConnection(
 
         val typeStr = msg.substring(0, space)
         when (val type = messageTypesByName[typeStr] ?: MessageType.UNKNOWN) {
-            MessageType.MSG, MessageType.BROADCAST -> {
+            MessageType.MSG, MessageType.BROADCAST, MessageType.BAN, MessageType.MUTE -> {
                 val json = msg.substring(space + 1)
                 executor.execute {
                     val parsed = try {
@@ -46,24 +46,33 @@ class SiteChatConnection(
                     if (parsed != null) {
                         Bot.log.trace("Received message: $json")
 
-                        if (type == MessageType.MSG)
-                            handleChatMessage(parsed)
-                        else if (type == MessageType.BROADCAST)
-                            handleChatBroadcast(parsed)
+                        when (type) {
+                            MessageType.MSG -> handleMessage(parsed)
+                            MessageType.BROADCAST -> handleBroadcast(parsed)
+                            MessageType.BAN, MessageType.MUTE -> handlePurge(parsed)
+                            else -> Bot.log.trace("Dropping message: $msg")
+                        }
                     }
                 }
             }
+            MessageType.UNKNOWN -> Bot.log.debug("Unknown message type: $msg")
             else -> Bot.log.trace("Ignoring message: $msg")
         }
     }
 
-    private fun handleChatBroadcast(message: SocketChatMessage) {
+    private fun handlePurge(message: SocketChatMessage) {
+        message.data.takeIf { it.isNotEmpty() }?.run {
+            ModerationHelper.purge(this)
+        }
+    }
+
+    private fun handleBroadcast(message: SocketChatMessage) {
         if (Bot.config!!.mirrorBroadcasts && message.data.startsWith('/').not()) {
             Bot.sendTwitchMessage("/me " + message.data, dropCommands = false)
         }
     }
 
-    private fun handleChatMessage(message: SocketChatMessage) {
+    private fun handleMessage(message: SocketChatMessage) {
         if (message.nick == null) return
         if (Bot.config!!.ignoreBots && message.isBot()) return
         if (Bot.config.subsOnly && message.isPrivileged().not()) return
