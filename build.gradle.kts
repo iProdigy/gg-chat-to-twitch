@@ -21,7 +21,7 @@ dependencies {
     implementation(group = "ch.qos.logback", name = "logback-classic", version = "1.2.11")
 }
 
-tasks.withType<KotlinCompile>() {
+tasks.withType<KotlinCompile> {
     kotlinOptions {
         freeCompilerArgs += "-Xuse-k2"
         jvmTarget = "1.8"
