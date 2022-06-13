@@ -73,7 +73,7 @@ class SiteChatConnection(
     }
 
     private fun handleBroadcast(message: SocketChatMessage) {
-        if (Bot.config!!.mirrorBroadcasts && message.data.startsWith('/').not()) {
+        if (Bot.config!!.mirrorBroadcasts && message.data.startsWith('/').not() && message.data != "emoteupdate") {
             Bot.sendTwitchMessage("/me " + message.data, dropCommands = false)
         }
     }
