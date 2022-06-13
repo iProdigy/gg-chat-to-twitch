@@ -2,6 +2,7 @@ package io.github.iprodigy.twitch
 
 import com.github.twitch4j.chat.events.CommandEvent
 import com.github.twitch4j.common.enums.CommandPermission
+import io.github.iprodigy.twitch.config.ConfigManager
 
 object TwitchCommandManager {
     private val commandHandlers: MutableMap<String, (CommandEvent) -> Unit> = hashMapOf()
@@ -20,7 +21,7 @@ object TwitchCommandManager {
         commandHandlers["connect"] = { Bot.socketConnection?.connect() }
         commandHandlers["disconnect"] = { Bot.socketConnection?.disconnect() }
         commandHandlers["reconnect"] = { Bot.socketConnection?.reconnect() }
-        commandHandlers["save"] = { Bot.writeConfig() }
+        commandHandlers["save"] = { ConfigManager.writeConfig() }
         commandHandlers["setprefix"] = { Bot.config!!.twitchMessagePrefix = it.command.substring("setprefix".length) }
         commandHandlers["setpostfix"] = { Bot.config!!.twitchMessagePostfix = it.command.substring("setpostfix".length) }
 

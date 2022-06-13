@@ -13,17 +13,12 @@ import com.github.twitch4j.chat.events.channel.UserStateEvent
 import com.github.twitch4j.common.enums.TwitchLimitType
 import com.github.twitch4j.common.util.ThreadUtils
 import com.github.twitch4j.common.util.TwitchLimitRegistry
+import io.github.iprodigy.twitch.config.ConfigManager
 import io.github.iprodigy.twitch.util.chatRateLimit
 import io.github.iprodigy.twitch.util.executeOrNull
 import org.slf4j.LoggerFactory
-import java.nio.file.Paths
 import java.time.Duration
 import kotlin.concurrent.fixedRateTimer
-import kotlin.io.path.readText
-import kotlin.io.path.toPath
-import kotlin.io.path.writeText
-
-private const val CONFIG_FILE_NAME = "./config.json"
 
 val mapper = jacksonObjectMapper().apply {
     propertyNamingStrategy = PropertyNamingStrategies.SNAKE_CASE
@@ -32,9 +27,8 @@ val mapper = jacksonObjectMapper().apply {
 }
 
 object Bot {
-    val log = LoggerFactory.getLogger(javaClass)!!
-
-    internal val config = readConfig()
+    internal val log = LoggerFactory.getLogger(javaClass)!!
+    internal val config = ConfigManager.config
     private val exec = ThreadUtils.getDefaultScheduledThreadPoolExecutor("ChatMirrorPool", Runtime.getRuntime().availableProcessors())
 
     private val tip = config?.let { TwitchIdentityProvider(it.clientId, it.clientSecret, "") }
@@ -69,7 +63,7 @@ object Bot {
     internal val socketConnection by lazy { config?.let { SiteChatConnection(it.chatSocketUrl, exec) } }
 
     fun start() {
-        assert(hasValidConfig())
+        assert(hasValidToken())
 
         log.info("Starting bot...")
 
@@ -92,7 +86,7 @@ object Bot {
                     config.accessToken = it.accessToken
                     config.refreshToken = it.refreshToken
 
-                    writeConfig()
+                    ConfigManager.writeConfig()
                 } else {
                     log.warn("Failed to refresh credential")
                 }
@@ -125,41 +119,7 @@ object Bot {
         }
     }
 
-    fun hasValidConfig() = config != null && config.accessToken.isNotBlank() && config.chatSocketUrl.isNotBlank() && config.twitchChannelName.isNotBlank() && checkToken()
-
-    private fun readConfig(): ConfigSettings? = try {
-        val cfg = getConfigResource()
-        if (cfg != null) {
-            cfg.readText().let {
-                log.trace("Read config contents: $it")
-                mapper.readValue(it, ConfigSettings::class.java)
-            }
-        } else {
-            log.warn("Failed to locate config")
-            null
-        }
-    } catch (e: Exception) {
-        log.error("Failed to read or parse config", e)
-        null
-    }
-
-    internal fun writeConfig() = try {
-        getConfigResource()?.apply {
-            writeText(mapper.writeValueAsString(config))
-            log.debug("Successfully wrote latest config file")
-        }
-    } catch (e: Exception) {
-        log.error("Failed to write config", e)
-    }
-
-    private fun getConfigResource() = try {
-        this::class.java.classLoader.getResource(CONFIG_FILE_NAME)?.toURI()?.toPath() ?: Paths.get(CONFIG_FILE_NAME)
-    } catch (e: Exception) {
-        log.error("Failed to obtain config", e)
-        null
-    }
-
-    private fun checkToken() = credential != null && credential.userId.isNullOrEmpty().not()
+    internal fun hasValidToken() = credential != null && credential.userId.isNullOrEmpty().not()
 
     internal fun sendTwitchMessage(message: String, dropCommands: Boolean = true, nonce: String? = null, replyMsgId: String? = null) {
         if (dropCommands && message.startsWith('/')) return

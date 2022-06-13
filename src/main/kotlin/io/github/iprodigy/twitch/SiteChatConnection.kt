@@ -5,6 +5,7 @@ import com.github.twitch4j.common.util.CryptoUtils
 import io.github.iprodigy.twitch.util.TWITCH_MAX_MESSAGE_LENGTH
 import io.github.iprodigy.twitch.util.createPoll
 import io.github.iprodigy.twitch.util.pronounsById
+import org.slf4j.LoggerFactory
 import java.util.Collections
 import java.util.concurrent.ScheduledExecutorService
 
@@ -16,6 +17,8 @@ class SiteChatConnection(
     private val executor: ScheduledExecutorService,
     private val pingPeriod: Int = WSS_PING_PERIOD
 ) {
+    private val log = LoggerFactory.getLogger(javaClass)!!
+
     private val socket = WebsocketConnection {
         it.baseUrl(baseUrl)
         it.taskExecutor(executor)
@@ -37,8 +40,8 @@ class SiteChatConnection(
             MessageType.MSG, MessageType.BROADCAST, MessageType.BAN, MessageType.MUTE -> handleJson(type, msg, json)
             MessageType.PING -> executor.execute { socket.sendText("PONG $json") }
             MessageType.REFRESH -> executor.execute { reconnect() }
-            MessageType.UNKNOWN -> Bot.log.debug("Unknown message type: $msg")
-            else -> Bot.log.trace("Ignoring message: $msg")
+            MessageType.UNKNOWN -> log.debug("Unknown message type: $msg")
+            else -> log.trace("Ignoring message: $msg")
         }
     }
 
@@ -46,18 +49,18 @@ class SiteChatConnection(
         val parsed = try {
             mapper.readValue(json, SocketChatMessage::class.java)
         } catch (e: Exception) {
-            Bot.log.warn("Failed to parse socket message: $rawMsg", e)
+            log.warn("Failed to parse socket message: $rawMsg", e)
             null
         }
 
         if (parsed != null) {
-            Bot.log.trace("Received message: $json")
+            log.trace("Received message: $json")
 
             when (type) {
                 MessageType.MSG -> handleMessage(parsed)
                 MessageType.BROADCAST -> handleBroadcast(parsed)
                 MessageType.BAN, MessageType.MUTE -> handlePurge(parsed)
-                else -> Bot.log.trace("Dropping message: $rawMsg")
+                else -> log.trace("Dropping message: $rawMsg")
             }
         }
     }
