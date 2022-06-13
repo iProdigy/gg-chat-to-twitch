@@ -4,6 +4,7 @@ import com.netflix.hystrix.HystrixCommand
 import io.github.iprodigy.twitch.Bot
 import java.util.NoSuchElementException
 import java.util.Queue
+import java.util.concurrent.BlockingQueue
 
 // Hystrix
 fun <T> HystrixCommand<T>.executeOrNull(
@@ -22,13 +23,17 @@ fun <T : Any?, C : MutableCollection<T>> Queue<T>.drainTo(supplier: () -> C): C 
     val collection = supplier()
     require(collection != this) { "Cannot drain collection to itself!" }
 
-    while (isNotEmpty()) {
-        val e = try {
-            remove()
-        } catch (ignored: NoSuchElementException) {
-            break
+    if (this is BlockingQueue) {
+        this.drainTo(collection)
+    } else {
+        while (isNotEmpty()) {
+            val e = try {
+                remove()
+            } catch (ignored: NoSuchElementException) {
+                break
+            }
+            collection += e
         }
-        collection += e
     }
 
     return collection

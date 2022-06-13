@@ -1,4 +1,4 @@
-package io.github.iprodigy.twitch
+package io.github.iprodigy.twitch.config
 
 data class ConfigSettings(
     val clientId: String? = null,
