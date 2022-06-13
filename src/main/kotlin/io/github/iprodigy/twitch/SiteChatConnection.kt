@@ -29,6 +29,7 @@ class SiteChatConnection(
     fun connect() = socket.connect()
     fun disconnect() = socket.disconnect()
     fun reconnect() = socket.reconnect()
+    fun latency() = socket.latency
 
     private fun parseSocketMessage(msg: String) {
         val space = msg.indexOf(' ')
