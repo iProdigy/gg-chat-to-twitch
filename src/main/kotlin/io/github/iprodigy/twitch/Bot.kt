@@ -121,8 +121,8 @@ object Bot {
 
     internal fun hasValidToken() = credential != null && credential.userId.isNullOrEmpty().not()
 
-    internal fun sendTwitchMessage(message: String, dropCommands: Boolean = true, nonce: String? = null, replyMsgId: String? = null) {
+    internal fun sendTwitchMessage(message: String, dropCommands: Boolean = true, nonce: String? = null, replyMsgId: String? = null, channelName: String = config!!.twitchChannelName) {
         if (dropCommands && message.startsWith('/')) return
-        twitchClient!!.chat.sendMessage(config!!.twitchChannelName, message, nonce, replyMsgId)
+        twitchClient!!.chat.sendMessage(channelName, message, nonce, replyMsgId)
     }
 }

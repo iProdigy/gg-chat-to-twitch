@@ -18,6 +18,12 @@ object TwitchCommandManager {
     }
 
     init {
+        commandHandlers["ping"] = {
+            Bot.sendTwitchMessage(
+                "MrDestructoid Pong! Latency: ${Bot.socketConnection?.latency()}ms to gg, ${Bot.twitchClient?.chat?.latency}ms to twitch. MrDestructoid",
+                channelName = it.sourceId
+            )
+        }
         commandHandlers["connect"] = { Bot.socketConnection?.connect() }
         commandHandlers["disconnect"] = { Bot.socketConnection?.disconnect() }
         commandHandlers["reconnect"] = { Bot.socketConnection?.reconnect() }
