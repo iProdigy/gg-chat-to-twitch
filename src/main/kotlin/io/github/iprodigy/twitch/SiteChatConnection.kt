@@ -10,6 +10,7 @@ import java.util.Collections
 import java.util.concurrent.ScheduledExecutorService
 
 private const val NONCE_LENGTH = 6
+private const val TWITCH_MAX_MSG_LENGTH = 500
 const val WSS_PING_PERIOD = 30_000
 
 class SiteChatConnection(
@@ -75,8 +76,8 @@ class SiteChatConnection(
     private fun handleBroadcast(message: SocketChatMessage) {
         if (Bot.config!!.mirrorBroadcasts && message.data.startsWith('/').not() && message.data != "emoteupdate") {
             val msg = ("/me " + message.data).let {
-                if (it.length > 500) {
-                    it.take(499) + "\u2026"
+                if (it.length > TWITCH_MAX_MSG_LENGTH) {
+                    it.take(TWITCH_MAX_MSG_LENGTH - 1) + "\u2026"
                 } else {
                     it
                 }
