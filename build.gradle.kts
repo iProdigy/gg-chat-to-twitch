@@ -17,8 +17,9 @@ repositories {
 
 dependencies {
     implementation(group = "com.fasterxml.jackson.module", name = "jackson-module-kotlin", version = "2.13.4")
-    implementation(group = "com.github.twitch4j", name = "twitch4j", version = "1.11.0")
+    implementation(group = "com.github.twitch4j", name = "twitch4j", version = "1.12.0")
     implementation(group = "ch.qos.logback", name = "logback-classic", version = "1.3.1")
+    implementation(group = "com.github.ben-manes.caffeine", name = "caffeine", version = "2.9.3")
 }
 
 tasks.withType<KotlinCompile> {
