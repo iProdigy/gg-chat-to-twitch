@@ -13,13 +13,14 @@ import io.github.xanthic.cache.ktx.maxSize
 import java.time.Duration
 
 private const val CACHE_SECONDS = 120L
+private const val CACHE_CAPACITY = 65536L
 private const val RECENT_MESSAGE_LIMIT = 16
 
 object ModerationHelper {
     private val recentMessageIdsByName: Cache<String, DrainableDeque<String>> = createCache {
         expiryType = ExpiryType.POST_ACCESS
         expiryTime = Duration.ofSeconds(CACHE_SECONDS)
-        maxSize = 65536
+        maxSize = CACHE_CAPACITY
     }
 
     private val readConnection = TwitchChatBuilder.builder().build().apply {
