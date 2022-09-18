@@ -1,20 +1,26 @@
 package io.github.iprodigy.twitch
 
-import com.github.benmanes.caffeine.cache.Cache
-import com.github.benmanes.caffeine.cache.Caffeine
 import com.github.twitch4j.chat.TwitchChatBuilder
 import com.github.twitch4j.chat.events.channel.ChannelMessageEvent
 import io.github.iprodigy.twitch.util.ConcurrentBoundedDeque
 import io.github.iprodigy.twitch.util.DrainableDeque
-import java.util.concurrent.TimeUnit
+import io.github.xanthic.cache.api.Cache
+import io.github.xanthic.cache.api.domain.ExpiryType
+import io.github.xanthic.cache.ktx.createCache
+import io.github.xanthic.cache.ktx.expiryTime
+import io.github.xanthic.cache.ktx.expiryType
+import io.github.xanthic.cache.ktx.maxSize
+import java.time.Duration
 
 private const val CACHE_SECONDS = 120L
 private const val RECENT_MESSAGE_LIMIT = 16
 
 object ModerationHelper {
-    private val recentMessageIdsByName: Cache<String, DrainableDeque<String>> = Caffeine.newBuilder()
-        .expireAfterAccess(CACHE_SECONDS, TimeUnit.SECONDS)
-        .build()
+    private val recentMessageIdsByName: Cache<String, DrainableDeque<String>> = createCache {
+        expiryType = ExpiryType.POST_ACCESS
+        expiryTime = Duration.ofSeconds(CACHE_SECONDS)
+        maxSize = 65536
+    }
 
     private val readConnection = TwitchChatBuilder.builder().build().apply {
         eventManager.onEvent(ChannelMessageEvent::class.java) { e ->
@@ -23,7 +29,7 @@ object ModerationHelper {
                     val msgId = e.messageEvent.messageId.orElse(null) ?: return@ifPresent
                     val delimIndex = nonce.indexOf(':').takeIf { it >= 0 } ?: return@ifPresent
                     val name = nonce.substring(0, delimIndex).lowercase().trim()
-                    recentMessageIdsByName.get(name) { ConcurrentBoundedDeque(RECENT_MESSAGE_LIMIT) }!!.offerFirst(msgId)
+                    recentMessageIdsByName.computeIfAbsent(name) { ConcurrentBoundedDeque(RECENT_MESSAGE_LIMIT) }!!.offerFirst(msgId)
                 }
             }
         }
@@ -40,5 +46,5 @@ object ModerationHelper {
         }
     }
 
-    private fun drainRecentMessageIds(name: String) = recentMessageIdsByName.getIfPresent(name.lowercase())?.drain()
+    private fun drainRecentMessageIds(name: String) = recentMessageIdsByName[name.lowercase()]?.drain()
 }
