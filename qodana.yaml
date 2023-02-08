@@ -4,7 +4,6 @@ linter: jetbrains/qodana-jvm:2022.3-eap
 profile:
   name: qodana.recommended
 include:
-  - name: CheckDependencyLicenses
   - name: ReplaceCollectionCountWithSize
   - name: UnnecessaryOptInAnnotation
   - name: WhenWithOnlyElse
