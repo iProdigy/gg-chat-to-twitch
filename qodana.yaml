@@ -10,3 +10,5 @@ include:
   - name: RedundantInnerClassModifier
   - name: RedundantWith
   - name: ThreadLocalNotStaticFinal
+  - name: UNUSED_IMPORT
+  - name: SyntaxError
