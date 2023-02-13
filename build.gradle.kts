@@ -27,7 +27,7 @@ dependencies {
 tasks.withType<KotlinCompile> {
     kotlinOptions {
         freeCompilerArgs += "-Xuse-k2"
-        jvmTarget = "1.8"
+        jvmTarget = "11"
     }
 }
 
