@@ -1,8 +1,9 @@
 package io.github.iprodigy.twitch
 
 import com.fasterxml.jackson.databind.DeserializationFeature
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.PropertyNamingStrategies
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.fasterxml.jackson.module.kotlin.jacksonMapperBuilder
 import com.github.philippheuer.credentialmanager.CredentialManagerBuilder
 import com.github.philippheuer.credentialmanager.domain.OAuth2Credential
 import com.github.twitch4j.TwitchClientBuilder
@@ -16,15 +17,16 @@ import com.github.twitch4j.common.util.TwitchLimitRegistry
 import io.github.iprodigy.twitch.config.ConfigManager
 import io.github.iprodigy.twitch.util.chatRateLimit
 import io.github.iprodigy.twitch.util.executeOrNull
+import io.github.xanthic.jackson.XanthicJacksonCacheProvider
 import org.slf4j.LoggerFactory
 import java.time.Duration
 import kotlin.concurrent.fixedRateTimer
 
-val mapper = jacksonObjectMapper().apply {
-    propertyNamingStrategy = PropertyNamingStrategies.SNAKE_CASE
-    disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-    // registerModule(JavaTimeModule())
-}
+val mapper: ObjectMapper = jacksonMapperBuilder()
+    .cacheProvider(XanthicJacksonCacheProvider.defaultInstance())
+    .propertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
+    .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+    .build()
 
 object Bot {
     internal val log = LoggerFactory.getLogger(javaClass)!!

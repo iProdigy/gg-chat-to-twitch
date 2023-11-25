@@ -21,6 +21,7 @@ dependencies {
     implementation(group = "ch.qos.logback", name = "logback-classic", version = "1.3.11")
     implementation(platform("io.github.xanthic.cache:cache-bom:0.5.0"))
     implementation(group = "io.github.xanthic.cache", name = "cache-kotlin")
+    implementation(group = "io.github.xanthic.cache", name = "cache-jackson")
     implementation(group = "io.github.xanthic.cache", name = "cache-provider-caffeine")
 }
 
