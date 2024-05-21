@@ -1,5 +1,3 @@
-@file:Suppress("SuspiciousCollectionReassignment")
-
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
@@ -27,7 +25,6 @@ dependencies {
 
 tasks.withType<KotlinCompile> {
     kotlinOptions {
-        freeCompilerArgs += "-Xuse-k2"
         jvmTarget = "11"
     }
 }
