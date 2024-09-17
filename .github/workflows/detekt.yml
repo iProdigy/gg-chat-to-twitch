@@ -22,6 +22,6 @@ jobs:
           java-version: '8'
           distribution: temurin
       - name: detekt
-        uses: natiginfo/action-detekt-all@1.23.6
+        uses: natiginfo/action-detekt-all@1.23.7
         with:
           args: --config detekt_config.yml
