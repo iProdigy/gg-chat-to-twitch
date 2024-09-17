@@ -42,4 +42,4 @@ enum class MessageType {
     UNKNOWN
 }
 
-val messageTypesByName = MessageType.values().associateBy { it.name }
+val messageTypesByName = MessageType.entries.associateBy { it.name }
