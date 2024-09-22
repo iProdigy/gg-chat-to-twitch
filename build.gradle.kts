@@ -15,7 +15,7 @@ repositories {
 
 dependencies {
     implementation(group = "com.fasterxml.jackson.module", name = "jackson-module-kotlin", version = "2.17.2")
-    implementation(group = "com.github.twitch4j", name = "twitch4j", version = "1.21.0")
+    implementation(group = "com.github.twitch4j", name = "twitch4j", version = "1.22.0")
     implementation(group = "ch.qos.logback", name = "logback-classic", version = "1.5.8")
     implementation(platform("io.github.xanthic.cache:cache-bom:0.6.1"))
     implementation(group = "io.github.xanthic.cache", name = "cache-kotlin")
