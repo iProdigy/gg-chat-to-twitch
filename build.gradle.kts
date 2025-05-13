@@ -2,7 +2,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     id("com.gradleup.shadow") version "8.3.6"
-    kotlin("jvm") version "2.1.20"
+    kotlin("jvm") version "2.1.21"
     application
 }
 
