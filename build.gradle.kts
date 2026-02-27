@@ -2,7 +2,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
 
 plugins {
-    id("com.gradleup.shadow") version "8.3.9"
+    id("com.gradleup.shadow") version "9.3.2"
     kotlin("jvm") version "2.3.10"
     application
 }
