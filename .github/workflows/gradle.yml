@@ -21,5 +21,7 @@ jobs:
         distribution: 'temurin'
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v6
+      with:
+        cache-disabled: true
     - name: Build with Gradle
       run: ./gradlew shadowJar
